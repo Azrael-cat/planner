@@ -1,4 +1,4 @@
-# 桌面任务小助手
+﻿# 桌面任务小助手
 
 一个离线运行的 Windows 桌面学习计划工具，适合考试复习、考研备考、实习学习和课程自学。把“截止日前学完多少内容”拆成每天的任务，在桌面查看、记录完成量，并安排后续复习。
 
@@ -61,7 +61,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\Build.ps1
 - 总数量创建后固定；增加学习内容请新建任务。修改日期或每周配额时，仅重排未来未完成的内容，保留今日任务、积压和完成记录。
 - 学习起止时间用于展示和效率估算，不限制打卡时间。“效率”按计划小时计算，**不是实际专注计时**。
 - 关机、休眠或退出程序期间不会弹提醒；恢复或重新启动后会更新跨天任务。系统通知设置也可能影响提醒。
-- 关闭卡片会留下小按钮；右键系统托盘图标选择 **退出** 才会完全退出。
+- 关闭卡片会留下小按钮；按住小按钮即可拖动并记住位置，单击展开任务；右键系统托盘图标选择 **退出** 才会完全退出。
 - 保存总结时，填写的附加任务会新增；重复编辑总结时请避免重复提交同一附加任务。
 
 ## 数据与隐私
@@ -85,9 +85,21 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\Build.ps1
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\Build.ps1
 Start-Process -FilePath .\DeskTaskAssistant.exe -ArgumentList '--self-test' -Wait
-Get-Content .\test-results.txt
+Get-Content .\output\verification\test-results.txt
 ```
 
-自检覆盖任务分配、复习、数量更新、跨天结转和独立任务统计，不读取个人任务数据。`VerifyUI.ps1` 使用临时示例数据检查界面，生成的 `qa-data` 和截图不纳入版本管理。
+自检覆盖任务分配、复习、数量更新、跨天结转和独立任务统计，不读取个人任务数据。`VerifyUI.ps1` 使用临时示例数据检查界面，生成的数据、截图与检查结果统一放在 `output/verification`，不纳入版本管理。
 
 开源协议：[MIT](LICENSE)。
+
+### 代码结构与发布同步
+
+- `src/`：按数据模型、任务分配、存储、桌面卡片、任务中心和绘制样式拆分的程序代码。
+- `tests/`：任务分配、批量数量、跨天和统计回归检查。
+- `VerifyUI.ps1`：使用虚构数据检查界面、悬浮按钮拖动、单击展开与位置保存。
+- `output/verification/`：自动生成的测试数据和截图；不会发布。
+- `publish-export/upload-ready/`：维护工作区中的本地 Git 发布副本。
+
+在维护工作区执行 `Build.ps1`，编译成功后会自动运行 `Sync-Publish.ps1`，同步白名单源码、说明和安装包到 `publish-export/upload-ready`。只改文档时也应运行 `Sync-Publish.ps1`。个人数据、临时截图与编辑器配置不会进入发布副本；发现发布副本中有冲突的手动修改时，同步会停止，避免覆盖。
+
+直接从 GitHub 下载的源码也可独立编译，不会创建嵌套发布副本。同步保留原有 `.git`，不自动提交或推送远程仓库。

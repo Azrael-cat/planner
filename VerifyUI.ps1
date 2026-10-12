@@ -3,7 +3,9 @@ Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 [void][Reflection.Assembly]::LoadFrom((Join-Path $PSScriptRoot 'DeskTaskAssistant.exe'))
 [System.Windows.Forms.Application]::EnableVisualStyles()
-[DeskTasks.Store]::Root = Join-Path $PSScriptRoot 'qa-data'
+$artifactRoot = Join-Path $PSScriptRoot 'output\verification'
+New-Item -ItemType Directory -Path $artifactRoot -Force | Out-Null
+[DeskTasks.Store]::Root = Join-Path $artifactRoot 'qa-data'
 $state = New-Object DeskTasks.State
 $project = New-Object DeskTasks.Project
 $project.Title = '英语词汇学习'
@@ -28,15 +30,10 @@ $quantity.Controls['saveQuantity'].PerformClick()
 if ($selected.Completed -ne 3) { throw 'Quantity save failed.' }
 $quantity.Dispose()
 $card.RefreshCard()
-$stream = [IO.File]::Create((Join-Path $PSScriptRoot 'App.ico'))
-$icon = [DeskTasks.Theme]::MakeIcon()
-$icon.Save($stream)
-$stream.Dispose()
-$icon.Dispose()
 function Capture($form, $name) {
     $bitmap = New-Object Drawing.Bitmap($form.Width, $form.Height)
     $form.DrawToBitmap($bitmap, (New-Object Drawing.Rectangle(0, 0, $form.Width, $form.Height)))
-    $bitmap.Save((Join-Path $PSScriptRoot $name))
+    $bitmap.Save((Join-Path $artifactRoot $name))
     $bitmap.Dispose()
 }
 Capture $card 'preview-card.png'
@@ -51,9 +48,31 @@ if ($card.Visible) { throw 'Collapse did not hide the card.' }
 $mini = [System.Windows.Forms.Application]::OpenForms | Where-Object { $_.Text -eq '展开任务' }
 if (-not $mini.Visible) { throw 'Restore button is missing.' }
 Capture $mini 'preview-collapsed.png'
+$button = $mini.Controls[0]
+$initial = $mini.Location
+function Invoke-Pointer($method, $x, $y) {
+    $eventArgs = New-Object System.Windows.Forms.MouseEventArgs([System.Windows.Forms.MouseButtons]::Left, 1, $x, $y, 0)
+    $info = $button.GetType().GetMethod($method, [Reflection.BindingFlags]'Instance,NonPublic')
+    $info.Invoke($button, [object[]]@($eventArgs.PSObject.BaseObject)) | Out-Null
+}
+Invoke-Pointer 'OnMouseDown' 8 8
+Invoke-Pointer 'OnMouseMove' 65 38
+Invoke-Pointer 'OnMouseUp' 8 8
+$button.PerformClick()
+if ($mini.Location -eq $initial) { throw 'Floating shortcut did not move.' }
+if ($card.Visible) { throw 'Dragging must not expand the card.' }
+if ($state.Settings.MiniX -ne $mini.Left -or $state.Settings.MiniY -ne $mini.Top) { throw 'Floating position was not saved.' }
+$persisted = [DeskTasks.Store]::Load()
+if ($persisted.Settings.MiniX -ne $mini.Left -or $persisted.Settings.MiniY -ne $mini.Top) { throw 'Floating position did not round-trip through storage.' }
+$savedPosition = $mini.Location
+Invoke-Pointer 'OnMouseDown' 8 8
+Invoke-Pointer 'OnMouseUp' 8 8
 $mini.Controls[0].PerformClick()
 [System.Windows.Forms.Application]::DoEvents()
 if (-not $card.Visible) { throw 'Restore button failed.' }
+$card.Collapse()
+if ($mini.Location -ne $savedPosition) { throw 'Floating position did not persist after collapsing again.' }
+$mini.Controls[0].PerformClick()
 $secondProject = New-Object DeskTasks.Project
 $secondProject.Title = '算法练习与复盘'
 $secondProject.Quantity = 160
