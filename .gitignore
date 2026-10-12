@@ -1,0 +1,39 @@
+# Personal task data and backups
+*.json
+*.json.*
+*.bak
+*.tmp
+qa-data/
+data/
+backups/
+
+# Generated executables, packages, and screenshots
+*.exe
+*.dll
+*.pdb
+*.zip
+*.png
+# Only reviewed, synthetic README screenshots may be published
+!docs/images/today-card.png
+!docs/images/task-center.png
+!docs/images/progress.png
+!docs/images/daily-summary.png
+test-results.txt
+bin/
+obj/
+publish-export/
+output/
+*.log
+
+# Local editor settings and credentials
+.vs/
+.vscode/
+.idea/
+.codex/
+.agents/
+.env
+.env.*
+*.pem
+*.key
+Thumbs.db
+Desktop.ini
